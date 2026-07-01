@@ -378,7 +378,7 @@ from basilica import ProviderFilter, WorldSize
     world_size=WorldSize(min=2, target=4, max=4),
     gpu_count=1,
     gpu_models=["A100"],
-    provider_filter=ProviderFilter(include=["hyperstack", "verda"]),
+    provider_filter=ProviderFilter(include=["<availability-zone-root>"]),
     topology_spread="pack",
     bench=True,
 )
@@ -413,8 +413,7 @@ basilica train up \
   --world-size 2:4:4 \
   --gpu-count 1 \
   --gpu-model A100 \
-  --provider hyperstack \
-  --provider verda \
+  --provider <availability-zone-root> \
   --topology-spread pack \
   --bench on-start \
   --ttl-seconds 3600
