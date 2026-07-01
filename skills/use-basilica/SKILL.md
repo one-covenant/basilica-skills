@@ -15,6 +15,19 @@ Use this skill to help users run Basilica as a customer cloud platform. Prefer
 the shortest reliable control plane for the job, and keep cost-bearing actions
 explicit.
 
+## Important Rules
+
+### Rental Startup
+
+Follow this rule before starting rentals. First list offerings with JSON
+discovery, select an explicit offering ID, then start the rental with
+`--offering-id`.
+
+Choose `gpu_offerings[].id` or `cpu_offerings[].id`; spot vs on-demand is a
+property of the selected offering. Do not combine `--offering-id` with
+positional GPU filters, `--compute`, `--gpu-count`, `--spot`, `--region`,
+`--interconnect`, or Bourse-only options.
+
 ## Control Plane Routing
 
 - Use the CLI for interactive operator workflows: login, funding, discovery,
@@ -153,13 +166,6 @@ basilica ls --help
 ```
 
 ### Start A Rental
-
-For non-interactive rental startup, first select an explicit offering ID from
-JSON discovery, then start the rental with `--offering-id`. Choose
-`gpu_offerings[].id` or `cpu_offerings[].id`; spot vs on-demand is a property
-of the selected offering. Do not combine `--offering-id` with positional GPU
-filters, `--compute`, `--gpu-count`, `--spot`, `--region`, `--interconnect`, or
-Bourse-only options.
 
 ```bash
 basilica --json ls --compute citadel
