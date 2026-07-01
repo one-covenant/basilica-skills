@@ -289,6 +289,25 @@ SDK deployment notes:
 - For failure details, `client.get_deployment(name).message` may be more direct
   than the high-level wrapper.
 
+Compact decorator shape:
+
+```python
+import basilica
+
+@basilica.deployment(
+    name="hello-fastapi",
+    port=8000,
+    pip_packages=["fastapi", "uvicorn"],
+    ttl_seconds=600,
+)
+def serve():
+    from fastapi import FastAPI
+    import uvicorn
+
+    app = FastAPI()
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
 ## Inference Templates
 
 CLI:
@@ -346,6 +365,33 @@ gateway token, not Basilica share-token auth.
 For Python DDP, DiLoCo, FSDP, or NCCL collective workloads, prefer the
 `@basilica.distributed` SDK surface. The same entry point also supports BYO
 launchers with `command=[...]`.
+
+Compact decorator shape:
+
+```python
+import basilica
+from basilica import ProviderFilter, WorldSize
+
+@basilica.distributed(
+    name="dlc-demo",
+    image="ghcr.io/one-covenant/basilica/basilica-distributed-trainer:latest",
+    world_size=WorldSize(min=2, target=4, max=4),
+    gpu_count=1,
+    gpu_models=["A100"],
+    provider_filter=ProviderFilter(include=["hyperstack", "verda"]),
+    topology_spread="pack",
+    bench=True,
+)
+def train():
+    import torch.distributed as dist
+
+    dist.init_process_group(backend="nccl")
+    dist.destroy_process_group()
+
+with train() as training:
+    training.wait_until_complete(timeout=1800)
+    print(training.bench)
+```
 
 Distributed rules:
 
