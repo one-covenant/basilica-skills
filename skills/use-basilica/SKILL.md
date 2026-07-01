@@ -137,7 +137,7 @@ deposit and card-funding history. Use SDK `get_balance()` and
 
 ## Rentals
 
-Discover capacity:
+### Discover Capacity
 
 ```bash
 basilica ls
@@ -145,14 +145,34 @@ basilica ls h100
 basilica ls --price-max 5 --country US
 basilica ls --compute secure-cloud
 basilica ls --compute community-cloud
+basilica --json ls --compute citadel
 ```
 
-Start and operate a machine:
+### Start A Rental
+
+For non-interactive rental startup, first select an explicit offering ID from
+JSON discovery, then start the rental with `--offering-id`. Choose
+`gpu_offerings[].id` or `cpu_offerings[].id`; spot vs on-demand is a property
+of the selected offering. Do not combine `--offering-id` with positional GPU
+filters, `--compute`, `--gpu-count`, `--spot`, `--region`, `--interconnect`, or
+Bourse-only options.
+
+```bash
+basilica --json ls --compute citadel
+basilica up --offering-id <offering-id> --name <name> --detach
+```
+
+Interactive or Bourse-style filtered rentals can use target filters:
 
 ```bash
 basilica ssh-keys list
 basilica ssh-keys add
 basilica up h100 --gpu-count 1 --compute secure-cloud
+```
+
+### Operate A Rental
+
+```bash
 basilica ps
 basilica status <rental-id>
 basilica logs <rental-id> --tail 100
@@ -162,12 +182,14 @@ basilica cp ./local.txt <rental-id>:/workspace/local.txt
 basilica restart <rental-id>
 ```
 
-Clean up:
+### Clean Up
 
 ```bash
 basilica down <rental-id>
 basilica down --all
 ```
+
+### Volumes
 
 Volumes are for secure-cloud rentals and must match provider and region:
 
@@ -179,7 +201,7 @@ basilica volumes detach cache --yes
 basilica volumes delete cache --yes
 ```
 
-SDK rental automation:
+### SDK Rental Automation
 
 ```python
 from basilica import BasilicaClient
