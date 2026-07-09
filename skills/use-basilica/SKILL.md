@@ -197,6 +197,10 @@ print(rental.ssh_command)
 
 ## Serverless Deployments
 
+For source files, containers, persistent storage, GPU apps, custom Docker
+images, WebSockets, public metadata, async orchestration, and progress
+monitoring patterns, read `references/serverless-deployments.md`.
+
 CLI deploys:
 
 ```bash

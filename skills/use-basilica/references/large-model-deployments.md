@@ -252,7 +252,10 @@ deployment = basilica.Deployment._from_response(client, response)
 
 try:
     deployment.wait_until_ready(timeout=2400, silent=False)
-except basilica.exceptions.DeploymentFailed:
+except (
+    basilica.exceptions.DeploymentTimeout,
+    basilica.exceptions.DeploymentFailed,
+):
     print(f"Still loading. Follow logs: basilica deploy logs {deployment.name} --follow")
 
 print(f"{deployment.url}/v1/chat/completions")
