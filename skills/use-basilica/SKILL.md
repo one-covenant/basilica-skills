@@ -24,7 +24,7 @@ explicit.
   concurrent orchestration, programmatic deploys, usage history, and
   distributed PyTorch/NCCL training.
 - Prefer direct rentals when the workload needs SSH, custom system setup,
-  persistent rented hosts, manual model warmup, or very large models.
+  persistent rented hosts, or manual host/process control.
 - Prefer serverless deploys when the user wants a public HTTP service,
   inference endpoint, hosted app URL, or short-lived demo.
 - Use the CLI for deposit-address creation and deposit history. The SDK exposes
@@ -305,9 +305,11 @@ deployment = client.deploy_vllm(
 print(f"{deployment.url}/v1/chat/completions")
 ```
 
-For very large models, rentals may be a better first choice when the workload
-needs manual control, custom setup, or warmup longer than deployment health
-checks tolerate.
+For standard vLLM or SGLang inference, start with `deploy_vllm()` or
+`deploy_sglang()`; the templates handle common GPU detection, model caching,
+health checks, and OpenAI-compatible endpoints. For larger or slower-loading
+models, read `references/large-model-deployments.md` before writing custom
+deployment code.
 
 ## OpenClaw And Tau
 
