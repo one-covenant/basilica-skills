@@ -15,6 +15,19 @@ Use this skill to help users run Basilica as a customer cloud platform. Prefer
 the shortest reliable control plane for the job, and keep cost-bearing actions
 explicit.
 
+## Important Rules
+
+### Rental Startup
+
+Follow this rule before starting rentals. First list offerings with JSON
+discovery, select an explicit offering ID, then start the rental with
+`--offering-id`.
+
+Choose `gpu_offerings[].id` or `cpu_offerings[].id`; spot vs on-demand is a
+property of the selected offering. Do not combine `--offering-id` with
+positional GPU filters, `--compute`, `--gpu-count`, `--spot`, `--region`,
+`--interconnect`, or Bourse-only options.
+
 ## Control Plane Routing
 
 - Use the CLI for interactive operator workflows: login, funding, discovery,
@@ -40,7 +53,8 @@ basilica up ...
 basilica deploy ...
 basilica deploy vllm ...
 basilica deploy sglang ...
-basilica summon ...
+basilica deploy openclaw ...
+basilica deploy tau ...
 basilica train up ...
 ```
 
@@ -120,66 +134,85 @@ exposes the needed state.
 
 ## Account And Funding
 
-```bash
-basilica balance
-basilica fund
-basilica fund --tao
-basilica fund --usd 25
-basilica fund list --limit 100 --offset 0
-basilica tokens create <name>
-basilica tokens list
-basilica tokens revoke <name> --yes
-```
-
 Use `basilica fund` for deposit address creation. Use `basilica fund list` for
 deposit and card-funding history. Use SDK `get_balance()` and
 `list_usage_history()` for programmatic balance and spend/usage checks.
 
-## Rentals
-
-Discover capacity:
+For exact flags, run:
 
 ```bash
-basilica ls
-basilica ls h100
-basilica ls --price-max 5 --country US
-basilica ls --compute secure-cloud
-basilica ls --compute community-cloud
+basilica balance --help
+basilica fund --help
+basilica fund list --help
+basilica tokens --help
 ```
 
-Start and operate a machine:
+## Rentals
+
+### Discover Capacity
+
+Use `basilica ls` for capacity discovery. Use JSON when selecting an offering
+for automation, and prefer explicit `--compute citadel` or `--compute bourse`
+when the source matters.
+
+```bash
+basilica --json ls --compute citadel
+```
+
+For filters and output options, run:
+
+```bash
+basilica ls --help
+```
+
+### Start A Rental
+
+```bash
+basilica --json ls --compute citadel
+basilica up --offering-id <offering-id> --name <name> --detach
+```
+
+Interactive or Bourse-style filtered rentals can use target filters:
 
 ```bash
 basilica ssh-keys list
 basilica ssh-keys add
-basilica up h100 --gpu-count 1 --compute secure-cloud
-basilica ps
-basilica status <rental-id>
-basilica logs <rental-id> --tail 100
-basilica ssh <rental-id>
-basilica exec "nvidia-smi" --target <rental-id>
-basilica cp ./local.txt <rental-id>:/workspace/local.txt
-basilica restart <rental-id>
+basilica up h100 --gpu-count 1 --compute bourse
 ```
 
-Clean up:
+For exact startup flags, run:
 
 ```bash
-basilica down <rental-id>
-basilica down --all
+basilica up --help
+basilica ssh-keys --help
 ```
 
-Volumes are for secure-cloud rentals and must match provider and region:
+### Operate A Rental
+
+Use `basilica ps` to find active rentals before operating on one. For exact
+flags, run the command-specific help:
 
 ```bash
-basilica volumes create --name cache --size 100 --provider hyperstack --region US-1
-basilica volumes attach cache --rental <rental-id>
-basilica volumes list
-basilica volumes detach cache --yes
-basilica volumes delete cache --yes
+basilica ps --help
+basilica status --help
+basilica logs --help
+basilica ssh --help
+basilica exec --help
+basilica cp --help
+basilica restart --help
 ```
 
-SDK rental automation:
+### Clean Up And Volumes
+
+Use `basilica down <rental-id>` for rental cleanup. Volumes must match provider
+and region, and should be deleted when no longer needed.
+
+```bash
+basilica down --help
+basilica volumes --help
+```
+
+### SDK Rental Automation
 
 ```python
 from basilica import BasilicaClient
@@ -197,38 +230,36 @@ print(rental.ssh_command)
 
 ## Serverless Deployments
 
+Use CLI deploys for quick services, hosted URLs, container images, and
+inference-style endpoints.
+
 For source files, containers, persistent storage, GPU apps, custom Docker
 images, WebSockets, public metadata, async orchestration, and progress
 monitoring patterns, read `references/serverless-deployments.md`.
 
-CLI deploys:
-
 ```bash
 basilica deploy my_api.py --name my-api --port 8000 --pip fastapi uvicorn --ttl 600
-basilica deploy nginxinc/nginx-unprivileged:alpine --name nginx-demo --port 8080 --ttl 300
-basilica deploy inference.py --name gpu-model --gpu 1 --gpu-model H100 --memory 32Gi --pip torch --ttl 3600
-basilica deploy hello.py --name stateful-app --storage --storage-path /data --ttl 3600
 ```
 
-Manage deploys:
+For exact deployment, management, private access, storage, GPU, and health-check
+flags, run:
 
 ```bash
-basilica deploy ls
-basilica deploy status <name> --show-phases
-basilica deploy logs <name> --tail 100
-basilica deploy logs <name> --follow
-basilica deploy scale <name> --replicas 3
-basilica deploy restart <name>
-basilica deploy delete <name> --yes
+basilica deploy --help
+basilica deploy ls --help
+basilica deploy status --help
+basilica deploy logs --help
+basilica deploy scale --help
+basilica deploy restart --help
+basilica deploy delete --help
+basilica deploy share-token --help
 ```
 
-Private deployments:
+Private deployments require `--private`; share tokens are managed under
+`basilica deploy share-token`.
 
 ```bash
 basilica deploy my_api.py --name private-app --port 8000 --private --ttl 600
-basilica deploy share-token status private-app
-basilica deploy share-token regenerate private-app
-basilica deploy share-token revoke private-app --yes
 ```
 
 SDK high-level deploy:
@@ -249,7 +280,19 @@ print(deployment.logs(tail=100))
 deployment.delete()
 ```
 
-SDK decorator deploy:
+SDK deployment notes:
+
+- `deploy()` blocks until readiness and returns a `Deployment` with `url`,
+  `status()`, `logs()`, `refresh()`, and `delete()`.
+- Use `deploy_async()` and async methods for concurrent orchestration.
+- Use `@basilica.deployment(...)` when a decorator interface fits the calling
+  code better than `client.deploy(...)`.
+- Use `create_deployment()` only when the high-level `deploy()` surface lacks
+  needed control.
+- For failure details, `client.get_deployment(name).message` may be more direct
+  than the high-level wrapper.
+
+Compact decorator shape:
 
 ```python
 import basilica
@@ -265,26 +308,8 @@ def serve():
     import uvicorn
 
     app = FastAPI()
-
-    @app.get("/")
-    def root():
-        return {"status": "ok"}
-
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-deployment = serve()
-print(deployment.url)
 ```
-
-SDK deployment notes:
-
-- `deploy()` blocks until readiness and returns a `Deployment` with `url`,
-  `status()`, `logs()`, `refresh()`, and `delete()`.
-- Use `deploy_async()` and async methods for concurrent orchestration.
-- Use `create_deployment()` only when the high-level `deploy()` surface lacks
-  needed control.
-- For failure details, `client.get_deployment(name).message` may be more direct
-  than the high-level wrapper.
 
 ## Inference Templates
 
@@ -293,6 +318,13 @@ CLI:
 ```bash
 basilica deploy vllm Qwen/Qwen2.5-0.5B-Instruct --name my-vllm --ttl 3600
 basilica deploy sglang Qwen/Qwen2.5-0.5B-Instruct --name my-sglang --ttl 3600
+```
+
+For exact model server flags, run:
+
+```bash
+basilica deploy vllm --help
+basilica deploy sglang --help
 ```
 
 SDK:
@@ -318,9 +350,16 @@ deployment code.
 ## OpenClaw And Tau
 
 ```bash
-basilica summon openclaw --provider openai
-basilica summon openclaw --provider anthropic
-basilica summon tau
+basilica deploy openclaw --provider openai --ttl 3600
+basilica deploy openclaw --provider anthropic --ttl 3600
+basilica deploy tau --ttl 3600
+```
+
+For exact gateway and agent flags, run:
+
+```bash
+basilica deploy openclaw --help
+basilica deploy tau --help
 ```
 
 OpenClaw deploys are intentionally public. Access is controlled by the OpenClaw
@@ -332,7 +371,7 @@ For Python DDP, DiLoCo, FSDP, or NCCL collective workloads, prefer the
 `@basilica.distributed` SDK surface. The same entry point also supports BYO
 launchers with `command=[...]`.
 
-Decorator mode:
+Compact decorator shape:
 
 ```python
 import basilica
@@ -344,51 +383,19 @@ from basilica import ProviderFilter, WorldSize
     world_size=WorldSize(min=2, target=4, max=4),
     gpu_count=1,
     gpu_models=["A100"],
-    provider_filter=ProviderFilter(include=["hyperstack", "verda"]),
+    provider_filter=ProviderFilter(include=["<availability-zone-root>"]),
     topology_spread="pack",
     bench=True,
 )
 def train():
-    import os
     import torch.distributed as dist
 
     dist.init_process_group(backend="nccl")
-    print(os.environ["RANK"], os.environ["WORLD_SIZE"], os.environ["LOCAL_RANK"])
     dist.destroy_process_group()
 
 with train() as training:
     training.wait_until_complete(timeout=1800)
     print(training.bench)
-```
-
-BYO launcher mode:
-
-```python
-import basilica
-from basilica import ProviderFilter, WorldSize
-
-training = basilica.distributed(
-    name="dlc-torchrun",
-    image="ghcr.io/one-covenant/basilica/basilica-distributed-trainer:latest",
-    command=[
-        "torchrun",
-        "--rdzv-backend=etcd",
-        "--rdzv-endpoint=$BASILICA_RDZV_ENDPOINT",
-        "--rdzv-id=$BASILICA_RDZV_ID",
-        "--nnodes=$BASILICA_WORLD_TARGET",
-        "--nproc-per-node=$BASILICA_GPUS_PER_POD",
-        "/workspace/train.py",
-    ],
-    world_size=WorldSize(min=2, target=2, max=4),
-    gpu_count=1,
-    gpu_models=["A100"],
-    provider_filter=ProviderFilter(include=["hyperstack", "verda"]),
-    topology_spread="pack",
-)
-
-with training:
-    training.scale(target=3)
-    training.wait_until_complete(timeout=1800)
 ```
 
 Distributed rules:
@@ -399,7 +406,9 @@ Distributed rules:
 - Do not use removed legacy SDK symbols:
   `client.deploy_distributed_managed(...)`, `bench="on-start"`,
   `training.bench_status`, or `training.wait_until_bench_complete()`.
-- CLI `basilica train` is available for command-launched distributed jobs:
+- Use CLI `basilica train` for command-launched distributed jobs.
+- CLI-side launches are BYO-launcher only; local Python source shipping is an
+  SDK decorator feature.
 
 ```bash
 basilica train up \
@@ -409,8 +418,7 @@ basilica train up \
   --world-size 2:4:4 \
   --gpu-count 1 \
   --gpu-model A100 \
-  --provider hyperstack \
-  --provider verda \
+  --provider <availability-zone-root> \
   --topology-spread pack \
   --bench on-start \
   --ttl-seconds 3600
@@ -422,6 +430,16 @@ basilica train events <name>
 basilica train bench <name>
 basilica train scale <name> --target 3
 basilica train down <name>
+```
+
+For exact training flags and lifecycle commands, run:
+
+```bash
+basilica train --help
+basilica train up --help
+basilica train logs --help
+basilica train bench --help
+basilica train down --help
 ```
 
 ## SDK Utilities
@@ -444,11 +462,14 @@ Install or update Basilica agent skills:
 
 ```bash
 basilica skills install
-basilica skills install -y
-basilica skills install --agent codex
-basilica skills list
-basilica skills uninstall --agent codex
 ```
 
 `basilica skills install` installs public user-facing skills from the Basilica
 skills repository. It does not install internal developer-only repo skills.
+For exact install targets and confirmation flags, run:
+
+```bash
+basilica skills --help
+basilica skills install --help
+basilica skills uninstall --help
+```
