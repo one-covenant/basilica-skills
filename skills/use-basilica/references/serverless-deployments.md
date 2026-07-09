@@ -459,7 +459,7 @@ This is useful for frameworks that need a custom runner.
 ```python
 import base64
 from pathlib import Path
-from basilica import BasilicaClient, Deployment
+from basilica import BasilicaClient
 
 client = BasilicaClient()
 
@@ -483,7 +483,7 @@ response = client.create_deployment(
     ttl_seconds=3600,
 )
 
-deployment = Deployment._from_response(client, response)
+deployment = client.get(response.instance_name)
 deployment.wait_until_ready(timeout=300)
 print(deployment.url)
 deployment.delete()

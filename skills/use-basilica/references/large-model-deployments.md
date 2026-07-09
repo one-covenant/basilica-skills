@@ -59,12 +59,10 @@ import basilica
 client = basilica.BasilicaClient()
 
 deployment = client.deploy_vllm(
-    model="meta-llama/Llama-2-7b-hf",
-    name="llama2-7b-server",
+    model="Qwen/Qwen2.5-0.5B-Instruct",
+    name="qwen-0-5b-vllm",
     gpu_count=1,
-    memory="32Gi",
-    dtype="float16",
-    trust_remote_code=True,
+    memory="16Gi",
     ttl_seconds=3600,
 )
 
@@ -173,11 +171,8 @@ high-VRAM GPUs, custom images, long startup budgets, or model-specific parsers.
 import basilica
 from basilica import (
     BasilicaClient,
-    CreateDeploymentRequest,
-    GpuRequirementsSpec,
     HealthCheckConfig,
     ProbeConfig,
-    ResourceRequirements,
 )
 
 client = BasilicaClient()
@@ -202,17 +197,6 @@ args = [
     "0.95",
 ]
 
-resources = ResourceRequirements(
-    cpu="32",
-    memory="512Gi",
-    gpus=GpuRequirementsSpec(
-        count=8,
-        model=["H200"],
-        min_cuda_version=None,
-        min_gpu_memory_gb=80,
-    ),
-)
-
 health_check = HealthCheckConfig(
     liveness=ProbeConfig(
         path="/health",
@@ -232,7 +216,7 @@ health_check = HealthCheckConfig(
     ),
 )
 
-request = CreateDeploymentRequest(
+response = client.create_deployment(
     instance_name="kimi-k2-instruct",
     image="vllm/vllm-openai:latest",
     replicas=1,
@@ -240,15 +224,17 @@ request = CreateDeploymentRequest(
     command=["vllm"],
     args=args,
     env={"HF_HUB_DOWNLOAD_TIMEOUT": "3600"},
-    resources=resources,
+    cpu="32",
+    memory="512Gi",
+    gpu_count=8,
+    gpu_models=["H200"],
+    min_gpu_memory_gb=80,
     ttl_seconds=7200,
     public=True,
-    storage=None,
     health_check=health_check,
 )
 
-response = client._client.create_deployment(request)
-deployment = basilica.Deployment._from_response(client, response)
+deployment = client.get(response.instance_name)
 
 try:
     deployment.wait_until_ready(timeout=2400, silent=False)
